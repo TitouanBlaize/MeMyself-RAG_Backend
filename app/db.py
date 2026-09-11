@@ -47,15 +47,18 @@ def init_db():
             )
             """
         )
-        # IVFFlat index speeds up similarity search once you have a
-        # meaningful number of rows (a few hundred+). Harmless before that.
-        conn.execute(
-            """
-            CREATE INDEX IF NOT EXISTS documents_embedding_idx
-            ON documents USING ivfflat (embedding vector_cosine_ops)
-            WITH (lists = 100)
-            """
-        )
+        # Drop the IVFFlat index from earlier versions of this file — it
+        # actively hurt recall at this row count (see comment below).
+        conn.execute("DROP INDEX IF EXISTS documents_embedding_idx")
+
+        # No approximate index (IVFFlat/HNSW) on purpose: at the scale of a
+        # personal Q/A corpus (dozens to low hundreds of chunks), an exact
+        # sequential scan is effectively instant, and IVFFlat's default of
+        # probing only 1 of its `lists` buckets gives *worse* — sometimes
+        # near-random — results when there are far more buckets than rows.
+        # If this ever grows to 10k+ chunks, revisit with an HNSW index
+        # (better recall than IVFFlat and doesn't need row-count tuning):
+        #   CREATE INDEX ON documents USING hnsw (embedding vector_cosine_ops);
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS ingested_sources (
