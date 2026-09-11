@@ -25,9 +25,17 @@ def get_conn():
 
 def init_db():
     """Create the extension and table if they don't exist yet.
-    Safe to call on every startup."""
-    with get_conn() as conn:
+    Safe to call on every startup.
+
+    IMPORTANT: register_vector() (used by get_conn) looks up the 'vector'
+    type's OID in pg_type, so it fails on a brand-new database where the
+    extension hasn't been created yet. We create the extension first on a
+    raw connection, then switch to get_conn() for everything else.
+    """
+    with pool.connection() as conn:
         conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+
+    with get_conn() as conn:
         conn.execute(
             f"""
             CREATE TABLE IF NOT EXISTS documents (
