@@ -86,3 +86,70 @@ def delete_source(source: str, x_api_key: str = Header(...)):
         deleted = result.rowcount
 
     return {"deleted": deleted}
+
+
+class ChunkOut(BaseModel):
+    id: int
+    source: str
+    content: str
+    created_at: str
+
+
+@app.get("/documents", response_model=list[ChunkOut])
+def list_documents(
+    x_api_key: str = Header(...),
+    source: str | None = None,
+    limit: int = 100,
+    offset: int = 0,
+):
+    """Lists stored chunks, most recent last. Filter with ?source=Titouan.md
+    and page through results with ?limit=&offset=."""
+    if x_api_key != settings.ingest_api_key:
+        raise HTTPException(401, "invalid API key")
+
+    limit = max(1, min(limit, 500))  # guard against accidentally huge pulls
+    offset = max(0, offset)
+
+    query = "SELECT id, source, content, created_at FROM documents"
+    params: list = []
+    if source:
+        query += " WHERE source = %s"
+        params.append(source)
+    query += " ORDER BY id LIMIT %s OFFSET %s"
+    params.extend([limit, offset])
+
+    with get_conn() as conn:
+        rows = conn.execute(query, params).fetchall()
+
+    return [
+        {
+            "id": r[0],
+            "source": r[1],
+            "content": r[2],
+            "created_at": r[3].isoformat(),
+        }
+        for r in rows
+    ]
+
+
+@app.get("/documents/sources")
+def list_sources(x_api_key: str = Header(...)):
+    """Summarizes what's in the database: each distinct source and how
+    many chunks it currently has."""
+    if x_api_key != settings.ingest_api_key:
+        raise HTTPException(401, "invalid API key")
+
+    with get_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT source, COUNT(*) AS chunk_count, MAX(created_at) AS last_updated
+            FROM documents
+            GROUP BY source
+            ORDER BY source
+            """
+        ).fetchall()
+
+    return [
+        {"source": r[0], "chunk_count": r[1], "last_updated": r[2].isoformat()}
+        for r in rows
+    ]
