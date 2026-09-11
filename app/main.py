@@ -2,6 +2,7 @@ from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from app.auto_ingest import auto_ingest_qa_file
 from app.chunking import chunk_markdown_qa
 from app.config import settings
 from app.db import get_conn, init_db
@@ -22,6 +23,7 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     init_db()
+    auto_ingest_qa_file()
 
 
 @app.get("/health")

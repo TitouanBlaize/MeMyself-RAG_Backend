@@ -56,3 +56,12 @@ def init_db():
             WITH (lists = 100)
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS ingested_sources (
+                source TEXT PRIMARY KEY,
+                content_hash TEXT NOT NULL,
+                updated_at TIMESTAMPTZ DEFAULT now()
+            )
+            """
+        )

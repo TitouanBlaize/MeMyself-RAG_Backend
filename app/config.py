@@ -21,6 +21,10 @@ class Settings(BaseSettings):
     # Simple shared-secret auth for the ingest endpoint
     ingest_api_key: str = "change-me"
 
+    # Path (relative to repo root) to the markdown Q/A file that gets
+    # auto-ingested on every startup, if it has changed.
+    qa_markdown_path: str = "Titouan.md"
+
     class Config:
         env_file = ".env"
 
