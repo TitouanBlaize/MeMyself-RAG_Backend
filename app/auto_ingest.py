@@ -48,24 +48,23 @@ def auto_ingest_qa_file():
 
     vectors = embed_documents(chunks) if chunks else []
 
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            # Replace this source's chunks entirely rather than appending,
-            # so edits/deletions in the markdown are reflected correctly.
-            cur.execute("DELETE FROM documents WHERE source = %s", (path,))
-            if chunks:
-                cur.executemany(
-                    "INSERT INTO documents (source, content, embedding) VALUES (%s, %s, %s)",
-                    [(path, c, v) for c, v in zip(chunks, vectors)],
-                )
-            cur.execute(
-                """
-                INSERT INTO ingested_sources (source, content_hash, updated_at)
-                VALUES (%s, %s, now())
-                ON CONFLICT (source)
-                DO UPDATE SET content_hash = EXCLUDED.content_hash, updated_at = now()
-                """,
-                (path, new_hash),
+    with get_conn() as conn, conn.cursor() as cur:
+        # Replace this source's chunks entirely rather than appending,
+        # so edits/deletions in the markdown are reflected correctly.
+        cur.execute("DELETE FROM documents WHERE source = %s", (path,))
+        if chunks:
+            cur.executemany(
+                "INSERT INTO documents (source, content, embedding) VALUES (%s, %s, %s)",
+                [(path, c, v) for c, v in zip(chunks, vectors)],
             )
+        cur.execute(
+            """
+            INSERT INTO ingested_sources (source, content_hash, updated_at)
+            VALUES (%s, %s, now())
+            ON CONFLICT (source)
+            DO UPDATE SET content_hash = EXCLUDED.content_hash, updated_at = now()
+            """,
+            (path, new_hash),
+        )
 
     print(f"[auto_ingest] done — {len(chunks)} chunks stored for {path}")

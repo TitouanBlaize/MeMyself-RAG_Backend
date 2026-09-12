@@ -66,12 +66,11 @@ def ingest_text(req: IngestTextRequest, x_api_key: str = Header(...)):
 
     vectors = embed_documents(chunks)
 
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.executemany(
-                "INSERT INTO documents (source, content, embedding) VALUES (%s, %s, %s)",
-                [(req.source, c, v) for c, v in zip(chunks, vectors)],
-            )
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.executemany(
+            "INSERT INTO documents (source, content, embedding) VALUES (%s, %s, %s)",
+            [(req.source, c, v) for c, v in zip(chunks, vectors)],
+        )
 
     return {"chunks_ingested": len(chunks)}
 

@@ -38,12 +38,11 @@ def ingest_file(path: str):
     print(f"  {len(chunks)} Q/A chunks, embedding...")
     vectors = embed_documents(chunks)
 
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.executemany(
-                "INSERT INTO documents (source, content, embedding) VALUES (%s, %s, %s)",
-                [(path, c, v) for c, v in zip(chunks, vectors)],
-            )
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.executemany(
+            "INSERT INTO documents (source, content, embedding) VALUES (%s, %s, %s)",
+            [(path, c, v) for c, v in zip(chunks, vectors)],
+        )
     print(f"  inserted {len(chunks)} chunks from {path}")
 
 
