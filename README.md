@@ -8,6 +8,8 @@ A minimal RAG API: FastAPI + Postgres/pgvector (Render) + Voyage embeddings + Cl
 - `POST /chat` — `{"question": "..."}` → retrieves relevant chunks, asks Claude, returns `{answer, sources}`
 - `POST /ingest/text` — `{"source": "...", "text": "..."}` (header `x-api-key: <INGEST_API_KEY>`) → chunks, embeds, and stores text
 - `DELETE /ingest/{source}` — removes all chunks for a given source (header `x-api-key: <INGEST_API_KEY>`)
+- `GET /documents` — lists stored chunks (header `x-api-key: <INGEST_API_KEY>`); filter with `?source=`, page with `?limit=&offset=`
+- `GET /documents/sources` — summarizes each distinct source with its chunk count and last update (header `x-api-key: <INGEST_API_KEY>`)
 
 ## Local development
 
