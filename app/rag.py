@@ -6,6 +6,11 @@ from app.embeddings import embed_query
 
 _claude = anthropic.Anthropic(api_key=settings.anthropic_api_key)
 
+
+class AnswerGenerationError(RuntimeError):
+    """Raised when the Claude API call fails."""
+
+
 SYSTEM_PROMPT = """You are an assistant answering questions about {owner} \
 using only the provided context excerpts from their resume, thesis, and \
 papers. If the context doesn't contain the answer, say so honestly instead \
@@ -28,9 +33,7 @@ def retrieve(query: str, top_k: int | None = None) -> list[dict]:
             (query_embedding, query_embedding, top_k),
         ).fetchall()
 
-    return [
-        {"content": r[0], "source": r[1], "similarity": r[2]} for r in rows
-    ]
+    return [{"content": r[0], "source": r[1], "similarity": r[2]} for r in rows]
 
 
 def answer_question(query: str, owner_name: str = "the site owner") -> dict:
@@ -43,17 +46,20 @@ def answer_question(query: str, owner_name: str = "the site owner") -> dict:
             f"[Source: {c['source']}]\n{c['content']}" for c in chunks
         )
 
-    message = _claude.messages.create(
-        model=settings.claude_model,
-        max_tokens=1024,
-        system=SYSTEM_PROMPT.format(owner=owner_name),
-        messages=[
-            {
-                "role": "user",
-                "content": f"Context:\n{context}\n\nQuestion: {query}",
-            }
-        ],
-    )
+    try:
+        message = _claude.messages.create(
+            model=settings.claude_model,
+            max_tokens=1024,
+            system=SYSTEM_PROMPT.format(owner=owner_name),
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Context:\n{context}\n\nQuestion: {query}",
+                }
+            ],
+        )
+    except Exception as e:
+        raise AnswerGenerationError("failed to generate an answer") from e
 
     answer_text = "".join(
         block.text for block in message.content if block.type == "text"
@@ -61,5 +67,7 @@ def answer_question(query: str, owner_name: str = "the site owner") -> dict:
 
     return {
         "answer": answer_text,
-        "sources": [{"source": c["source"], "similarity": c["similarity"]} for c in chunks],
+        "sources": [
+            {"source": c["source"], "similarity": c["similarity"]} for c in chunks
+        ],
     }
