@@ -18,35 +18,42 @@ connection string (set DATABASE_URL to the "External" URL Render shows
 you, not the internal one — the internal one only works from inside
 Render's network).
 """
+
+import logging
+import os
 import sys
 
 from app.chunking import chunk_markdown_qa
 from app.db import get_conn, init_db
 from app.embeddings import embed_documents
 
+logger = logging.getLogger(__name__)
+
 
 def ingest_file(path: str):
-    print(f"Reading {path}...")
-    with open(path, "r", encoding="utf-8") as f:
+    logger.info("Reading %s...", path)
+    with open(path, encoding="utf-8") as f:
         text = f.read()
 
     chunks = chunk_markdown_qa(text)
     if not chunks:
-        print("  no '# heading' sections found — nothing to ingest")
+        logger.info("no '# heading' sections found — nothing to ingest")
         return
 
-    print(f"  {len(chunks)} Q/A chunks, embedding...")
+    logger.info("%d Q/A chunks, embedding...", len(chunks))
     vectors = embed_documents(chunks)
 
     with get_conn() as conn, conn.cursor() as cur:
         cur.executemany(
             "INSERT INTO documents (source, content, embedding) VALUES (%s, %s, %s)",
-            [(path, c, v) for c, v in zip(chunks, vectors)],
+            [(path, c, v) for c, v in zip(chunks, vectors, strict=True)],
         )
-    print(f"  inserted {len(chunks)} chunks from {path}")
+    logger.info("inserted %d chunks from %s", len(chunks), path)
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=os.environ.get("LOG_LEVEL", "INFO"))
+
     if len(sys.argv) != 2:
         print("Usage: python ingest.py qa.md")
         sys.exit(1)
