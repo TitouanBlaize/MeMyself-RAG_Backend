@@ -25,6 +25,22 @@ easiest way is the `pgvector/pgvector` Docker image), or just point
 `DATABASE_URL` at your Render database's "External Connection String"
 during development.
 
+## Local development with Docker
+
+```bash
+cp .env.example .env   # fill in ANTHROPIC_API_KEY, VOYAGE_API_KEY, INGEST_API_KEY
+docker compose up --build
+```
+
+This builds the app image and starts a `pgvector/pgvector` Postgres
+alongside it — no separate local Postgres install needed.
+`docker-compose.yml` overrides `DATABASE_URL` to point at the `db` service,
+so the value in your `.env` is ignored in this mode (it's only used for the
+non-Docker path above). The schema is created automatically on startup via
+the same `init_db()` hook used everywhere else — no separate migration
+step. `docker compose down -v` resets the database volume if you want a
+clean slate.
+
 ## Deploying to Render
 
 1. Push this repo to GitHub.
@@ -82,9 +98,19 @@ const res = await fetch("https://<your-service>.onrender.com/chat", {
 const { answer, sources } = await res.json();
 ```
 
-Remember to restrict `allow_origins` in `app/main.py`'s CORS middleware
-to your actual frontend domain before going live — `"*"` is fine for
-testing only.
+Remember to restrict CORS to your actual frontend domain before going
+live — set `CORS_ORIGINS` (comma-separated) in your environment; it
+defaults to `"*"`, which is fine for testing only.
+
+## Running tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+All external services (Postgres, VoyageAI, Anthropic) are mocked — no
+real database or API keys are needed to run the suite.
 
 ## Notes & things to tune later
 
