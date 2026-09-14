@@ -1,7 +1,5 @@
 import re
 
-from app.config import settings
-
 
 def chunk_markdown_qa(text: str) -> list[str]:
     """Split a markdown Q&A file into one chunk per top-level (#) section.
@@ -34,24 +32,4 @@ def chunk_markdown_qa(text: str) -> list[str]:
         heading = heading.lstrip("#").strip()
         body = body.strip()
         chunks.append(f"{heading}\n{body}" if body else heading)
-    return chunks
-
-
-def chunk_text(text: str) -> list[str]:
-    """Simple fixed-size character chunker with overlap.
-    Good enough to start; swap in a token-aware or semantic chunker later
-    if retrieval quality needs it."""
-    size = settings.chunk_size
-    overlap = settings.chunk_overlap
-    text = " ".join(text.split())  # collapse whitespace/newlines
-
-    if len(text) <= size:
-        return [text] if text else []
-
-    chunks = []
-    start = 0
-    while start < len(text):
-        end = start + size
-        chunks.append(text[start:end])
-        start = end - overlap
     return chunks
