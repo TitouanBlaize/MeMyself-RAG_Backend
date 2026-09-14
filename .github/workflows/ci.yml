@@ -21,10 +21,16 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt ruff
+        run: pip install -r requirements-dev.txt
 
       - name: Lint with ruff
         run: ruff check .
+
+      - name: Check formatting with ruff
+        run: ruff format --check .
+
+      - name: Type check with mypy
+        run: mypy app
 
       - name: Check app imports
         # Verifies every module parses and top-level imports resolve.
@@ -39,3 +45,11 @@ jobs:
           python -c "import app.chunking"
           python -c "import app.embeddings"
           python -c "import app.rag"
+
+      - name: Run tests
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost/ci"
+          ANTHROPIC_API_KEY: "sk-placeholder"
+          VOYAGE_API_KEY: "pa-placeholder"
+          INGEST_API_KEY: "placeholder"
+        run: pytest
