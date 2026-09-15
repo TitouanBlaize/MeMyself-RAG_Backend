@@ -63,8 +63,11 @@ def chat(req: ChatRequest):
     if not req.question.strip():
         raise HTTPException(400, "question must not be empty")
 
+    logger.info("chat question received: %r", req.question)
     try:
-        return answer_question(req.question, owner_name=settings.owner_name)
+        result = answer_question(req.question, owner_name=settings.owner_name)
+        logger.info("chat answered, %d sources", len(result["sources"]))
+        return result
     except AnswerGenerationError as e:
         logger.error("chat failed: %s", e)
         raise HTTPException(502, "failed to generate an answer") from e
