@@ -1,0 +1,40 @@
+[project]
+name = "memyselfandrag-backend"
+version = "0.1.0"
+description = "Minimal RAG API: FastAPI + Postgres/pgvector + Voyage embeddings + Claude"
+requires-python = ">=3.11"
+
+# Production dependencies stay in requirements.txt (Render's build command
+# reads it directly). This section exists only so `requires-python` and
+# project metadata are declared somewhere version-controlled.
+
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+
+[tool.ruff.lint]
+# E/F: pyflakes + pycodestyle baseline (what ruff already enforces by
+# default today — made explicit here instead of relying on ruff's
+# implicit defaults).
+# I: import sorting (this codebase's imports are already consistently
+# stdlib -> third-party -> local; this just enforces it going forward).
+# UP: flags outdated syntax patterns (e.g. old-style typing).
+# B: flake8-bugbear — catches real correctness footguns (mutable default
+# args, etc.), cheap to enable and high signal.
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+# Without the plugin, mypy doesn't know pydantic-settings populates
+# required-with-no-default fields from the environment at runtime, and
+# flags Settings() as a missing-argument call-site error.
+# Permissive on purpose: this codebase has had zero type-checking history
+# until now. Tightening (disallow_untyped_defs, strict, etc.) is a
+# deliberate future step, not part of this pass.
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
